@@ -1,0 +1,1241 @@
+<title>Microtremor HVSR</title>
+<meta charset="utf-8">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root {
+  --bg: #e9edf0;
+  --panel: #ffffff;
+  --panel-2: #f4f6f8;
+  --line: #d3dae0;
+  --ink: #14212b;
+  --muted: #5a6a76;
+  --accent: #0a6c87;
+  --accent-ink: #ffffff;
+  --accent-soft: #d8eef4;
+  --ok: #2e7a47;
+  --ok-soft: #dcf0e2;
+  --bad: #b0281f;
+  --bad-soft: #f7dedb;
+  --warn: #9a5a10;
+  --curve: #000000;
+  --reject: rgba(120, 134, 145, 0.16);
+  --gap: rgba(20, 33, 43, 0.55);
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1418; --panel: #151e24; --panel-2: #1b262d; --line: #2b3943;
+    --ink: #e3eaee; --muted: #93a3ae; --accent: #4bb6d4; --accent-ink: #062029;
+    --accent-soft: #143340; --ok: #6cc58a; --ok-soft: #173325; --bad: #ff8a80;
+    --bad-soft: #3a1c1a; --warn: #e2a65a; --curve: #f2f5f7;
+    --reject: rgba(150, 165, 175, 0.12); --gap: rgba(0, 0, 0, 0.6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1418; --panel: #151e24; --panel-2: #1b262d; --line: #2b3943;
+  --ink: #e3eaee; --muted: #93a3ae; --accent: #4bb6d4; --accent-ink: #062029;
+  --accent-soft: #143340; --ok: #6cc58a; --ok-soft: #173325; --bad: #ff8a80;
+  --bad-soft: #3a1c1a; --warn: #e2a65a; --curve: #f2f5f7;
+  --reject: rgba(150, 165, 175, 0.12); --gap: rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px 28px;
+}
+h1, h2, h3 { font-family: var(--f-display); font-weight: 600; text-wrap: balance; margin: 0; }
+.mono, input[type=number], .num { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+button { font: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { max-width: 1480px; margin: 0 auto; display: grid; gap: 14px; }
+.topbar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+.topbar h1 { font-size: 26px; letter-spacing: 0.01em; }
+.topbar h1 span { color: var(--accent); }
+.topbar p { margin: 0; color: var(--muted); }
+
+.workspace { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 900px) { .workspace { grid-template-columns: minmax(0, 1fr); } }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); }
+.side { display: grid; gap: 0; }
+.side section { padding: 14px; display: grid; gap: 10px; }
+.side section + section { border-top: 1px solid var(--line); }
+.label { font-family: var(--f-display); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+
+.drop { border: 1.5px dashed var(--line); border-radius: var(--r); padding: 14px 12px; text-align: center; color: var(--muted); display: grid; gap: 10px; background: var(--panel-2); }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+.drop .row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+
+.btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: var(--r); padding: 6px 11px; cursor: pointer; line-height: 1.3; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 500; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+.btn.small { padding: 4px 9px; font-size: 13px; }
+
+.stations { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 280px; overflow-y: auto; }
+.stations button { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; text-align: left; padding: 7px 10px; border-radius: var(--r); border: 1px solid transparent; background: transparent; color: var(--ink); cursor: pointer; }
+.stations button:hover { background: var(--panel-2); }
+.stations button[aria-current="true"] { background: var(--accent-soft); border-color: var(--accent); }
+.stations .nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stations .f0 { font-family: var(--f-data); font-size: 12.5px; color: var(--accent); }
+.stations .sub { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+.empty-note { color: var(--muted); font-size: 13px; margin: 0; }
+
+.params { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; }
+.params label { font-size: 13px; }
+.params input, .params select { width: 92px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel-2); color: var(--ink); font-size: 13px; }
+details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+details .params { margin-top: 8px; }
+
+.main { display: grid; gap: 14px; min-width: 0; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 10px 12px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.seg button { border: 0; background: var(--panel); color: var(--ink); padding: 5px 11px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.toolbar .group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.toolbar .hint { color: var(--muted); font-size: 12.5px; margin-left: auto; }
+
+.sigwrap { padding: 10px 12px 8px; display: grid; gap: 6px; }
+.sighead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; align-items: baseline; }
+.sighead h2 { font-size: 17px; }
+.sighead .meta { color: var(--muted); font-size: 12.5px; }
+canvas { display: block; width: 100%; touch-action: pan-y; }
+#sig { height: 290px; cursor: crosshair; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 18px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 5px; }
+
+.lower { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(280px, 1fr); gap: 14px; }
+@media (max-width: 1100px) { .lower { grid-template-columns: minmax(0, 1fr); } }
+.hvwrap { padding: 10px 12px; display: flex; flex-direction: column; min-width: 0; }
+.hvbox { position: relative; flex: 1 1 auto; min-height: 440px; }
+#hv { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; }
+
+.result { padding: 14px; display: grid; gap: 14px; align-content: start; }
+.readout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
+.readout div { display: grid; gap: 1px; }
+.readout .k { font-size: 12px; color: var(--muted); }
+.readout .v { font-family: var(--f-data); font-size: 15px; font-variant-numeric: tabular-nums; }
+.readout .big { font-size: 30px; font-weight: 500; line-height: 1.1; color: var(--accent); }
+.readout .big small { font-size: 14px; color: var(--muted); font-weight: 400; margin-left: 3px; }
+
+.verdict { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; font-weight: 500; }
+.chip.ok { background: var(--ok-soft); color: var(--ok); }
+.chip.bad { background: var(--bad-soft); color: var(--bad); }
+.crit { display: grid; gap: 3px; font-size: 12.5px; }
+.crit h3 { font-size: 13.5px; margin-top: 4px; }
+.crit .c { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 6px; align-items: baseline; }
+.crit .c .m { font-weight: 700; }
+.crit .c.ok .m { color: var(--ok); }
+.crit .c.no .m { color: var(--bad); }
+.crit .c .val { font-family: var(--f-data); color: var(--muted); font-size: 12px; text-align: right; }
+.exports { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+
+.summary { padding: 12px 14px; display: grid; gap: 10px; }
+.summary .head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 6px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child, th.l, td.l { text-align: left; }
+th { font-family: var(--f-display); font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+td.num { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--panel-2); }
+
+.status { min-height: 20px; font-size: 13px; color: var(--muted); }
+.status.err { color: var(--bad); }
+.busy { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--panel); padding: 8px 14px; border-radius: var(--r); font-size: 13px; z-index: 20; }
+.preview { display: grid; gap: 6px; }
+.preview img { border: 1px solid var(--line); border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app">
+  <header class="topbar">
+    <h1>Microtremor <span>HVSR</span></h1>
+    <p>H/V Analysis from MiniSEED. All processing runs locally in the browser; no data is transmitted.</p>
+  </header>
+
+  <div class="workspace">
+    <aside class="panel side">
+      <section>
+        <div class="label">Data</div>
+        <div class="drop" id="drop">
+          <div>Drag and drop folders, .mseed, or .zip files here</div>
+          <div class="row">
+            <button class="btn small" id="btnFolder" type="button">Select Folder</button>
+            <button class="btn small" id="btnFiles" type="button">Select Files</button>
+            <button class="btn small" id="btnZip" type="button">Open ZIP</button>
+          </div>
+          <input type="file" id="inFolder" webkitdirectory directory multiple hidden>
+          <input type="file" id="inFiles" multiple accept=".mseed,.miniseed,.msd,.seed,.ms" hidden>
+          <input type="file" id="inZip" accept=".zip" hidden>
+        </div>
+        <div class="label">Measurement Stations</div>
+        <ul class="stations" id="stations"></ul>
+        <p class="empty-note" id="noStations">No data available. Each folder containing Z, N, and E files is treated as a single station.</p>
+      </section>
+      <section>
+        <div class="label">Parameters</div>
+        <div class="params">
+          <label for="pWin">Window Length (s)</label><input id="pWin" type="number" value="40" min="5" step="5">
+          <label for="pOver">Overlap (%)</label><input id="pOver" type="number" value="0" min="0" max="90" step="10">
+          <label for="pKo">Konno-Ohmachi b</label><input id="pKo" type="number" value="40" min="5" step="5">
+          <label for="pFmin">Min Frequency (Hz)</label><input id="pFmin" type="number" value="0.5" min="0.05" step="0.1">
+          <label for="pFmax">Max Frequency (Hz)</label><input id="pFmax" type="number" value="20" min="1" step="1">
+          <label for="pHor">H Component</label>
+          <select id="pHor"><option value="squared">√((N²+E²)/2)</option><option value="geometric">√(N·E)</option><option value="arithmetic">(N+E)/2</option></select>
+        </div>
+        <details>
+          <summary>Anti-trigger STA/LTA</summary>
+          <div class="params">
+            <label for="pSta">STA (s)</label><input id="pSta" type="number" value="1" min="0.1" step="0.5">
+            <label for="pLta">LTA (s)</label><input id="pLta" type="number" value="30" min="5" step="5">
+            <label for="pRmin">Min Ratio</label><input id="pRmin" type="number" value="0.2" min="0" step="0.1">
+            <label for="pRmax">Max Ratio</label><input id="pRmax" type="number" value="2.5" min="1" step="0.1">
+          </div>
+        </details>
+        <button class="btn primary" id="btnApply" type="button">Apply Parameters</button>
+        <div class="status" id="status" role="status"></div>
+      </section>
+    </aside>
+
+    <main class="main">
+      <div class="panel toolbar">
+        <div class="group">
+          <span class="label">Drag on Signal</span>
+          <div class="seg" role="group" aria-label="Drag Mode">
+            <button type="button" id="mRemove" aria-pressed="true">Exclude</button>
+            <button type="button" id="mAdd" aria-pressed="false">Include</button>
+          </div>
+        </div>
+        <div class="group">
+          <button class="btn small" id="bAuto" type="button">Auto STA/LTA</button>
+          <button class="btn small" id="bAll" type="button">Select All</button>
+          <button class="btn small" id="bNone" type="button">Clear All</button>
+          <button class="btn small" id="bBand" type="button">Reset f0 Range</button>
+          <button class="btn small" id="bUndo" type="button">Undo</button>
+        </div>
+        <span class="hint">Click window = include/exclude · Click H/V curve = exclude · Drag on H/V = set f0 range</span>
+      </div>
+
+      <div class="panel sigwrap">
+        <div class="sighead"><h2 id="sigTitle">Signal</h2><span class="meta mono" id="sigMeta"></span></div>
+        <canvas id="sig" aria-label="Three-component signal with analysis windows"></canvas>
+        <div class="legend">
+          <span><i style="background:linear-gradient(90deg,hsl(0 100% 50% / .5),hsl(120 100% 50% / .5),hsl(240 100% 50% / .5))"></i>included window (color matches curve)</span>
+          <span><i style="background:var(--reject);border:1px solid var(--line)"></i>excluded</span>
+          <span><i style="background:var(--gap)"></i>data gap</span>
+        </div>
+      </div>
+
+      <div class="lower">
+        <div class="panel hvwrap">
+          <div class="hvbox"><canvas id="hv" aria-label="H/V Curve"></canvas></div>
+        </div>
+        <div class="panel result">
+          <div class="readout">
+            <div><span class="k">Dominant Frequency f0</span><span class="v big" id="rF0">–</span></div>
+            <div><span class="k">Amplification A0</span><span class="v big" id="rA0">–</span></div>
+            <div><span class="k">Period T0</span><span class="v" id="rT0">–</span></div>
+            <div><span class="k">Vulnerability Index Kg</span><span class="v" id="rKg">–</span></div>
+            <div><span class="k">f0 from Windows</span><span class="v" id="rF0w">–</span></div>
+            <div><span class="k">Windows Used</span><span class="v" id="rN">–</span></div>
+          </div>
+          <div class="verdict" id="verdict"></div>
+          <div class="crit" id="crit"></div>
+          <div class="label">Export</div>
+          <div class="exports">
+            <button class="btn" id="eJpg" type="button">Curve JPEG</button>
+            <button class="btn" id="eJpg2" type="button">Signal + Curve JPEG</button>
+            <button class="btn" id="eCsv" type="button">Curve CSV</button>
+            <button class="btn" id="eTxt" type="button">TXT Report</button>
+          </div>
+          <div class="preview" id="preview" hidden>
+            <span class="empty-note">Download unavailable in this view. Right-click or long-press the image to save.</span>
+            <img id="previewImg" alt="H/V curve preview">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel summary">
+        <div class="head">
+          <h2 style="font-size:17px">All Stations Summary</h2>
+          <div class="group" style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn small primary" id="bBatch" type="button">Process All Stations</button>
+            <button class="btn small" id="eSum" type="button">Summary CSV</button>
+          </div>
+        </div>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Station</th><th>f0 (Hz)</th><th>A0</th><th>T0 (s)</th><th>Kg</th><th>Windows</th><th>Reliable</th><th>Clear Peak</th><th class="l">Selection</th></tr></thead>
+            <tbody id="sumBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="busy" id="busy" hidden>Processing...</div>
+
+<script>
+/*CORE-START*/
+// ===================== MiniSEED v2 =====================
+function parseMiniSeed(buf) {
+  const dv = new DataView(buf);
+  const recs = [];
+  let off = 0;
+  const N = buf.byteLength;
+  while (off + 48 <= N) {
+    // valid header? sequence digits + quality char
+    const q = dv.getUint8(off + 6);
+    if (!(q === 68 || q === 82 || q === 81 || q === 77)) { off += 64; continue; }
+    let le = false;
+    let year = dv.getUint16(off + 20, false);
+    if (year < 1900 || year > 2100) { year = dv.getUint16(off + 20, true); le = true; }
+    if (year < 1900 || year > 2100) { off += 64; continue; }
+    const s = (a, n) => { let t = ""; for (let i = 0; i < n; i++) t += String.fromCharCode(dv.getUint8(off + a + i)); return t.trim(); };
+    const sta = s(8, 5), loc = s(13, 2), cha = s(15, 3), net = s(18, 2);
+    const doy = dv.getUint16(off + 22, le), hh = dv.getUint8(off + 24), mm = dv.getUint8(off + 25), ss = dv.getUint8(off + 26);
+    const fr = dv.getUint16(off + 28, le);
+    const nsamp = dv.getUint16(off + 30, le);
+    const sf = dv.getInt16(off + 32, le), sm = dv.getInt16(off + 34, le);
+    const act = dv.getUint8(off + 36);
+    const tcorr = dv.getInt32(off + 40, le);
+    const dataOff = dv.getUint16(off + 44, le);
+    let bOff = dv.getUint16(off + 46, le);
+    let enc = 11, wordLE = false, reclen = 0, usec = 0;
+    let guard = 0;
+    while (bOff && bOff + 4 <= 4096 && off + bOff + 4 <= N && guard++ < 20) {
+      const bt = dv.getUint16(off + bOff, le), nxt = dv.getUint16(off + bOff + 2, le);
+      if (bt === 1000) { enc = dv.getUint8(off + bOff + 4); wordLE = dv.getUint8(off + bOff + 5) === 0; reclen = 1 << dv.getUint8(off + bOff + 6); }
+      else if (bt === 1001) { usec = dv.getInt8(off + bOff + 5); }
+      if (!nxt || nxt <= bOff) break;
+      bOff = nxt;
+    }
+    if (!reclen) reclen = 512;
+    let rate = 0;
+    if (sf > 0 && sm > 0) rate = sf * sm; else if (sf > 0 && sm < 0) rate = -sf / sm;
+    else if (sf < 0 && sm > 0) rate = -sm / sf; else if (sf < 0 && sm < 0) rate = 1 / (sf * sm);
+    let t = Date.UTC(year, 0, 1, hh, mm, ss) / 1000 + (doy - 1) * 86400 + fr * 1e-4 + usec * 1e-6;
+    if (!(act & 0x02)) t += tcorr * 1e-4;
+    if (nsamp > 0 && rate > 0 && dataOff > 0) {
+      const data = decodeData(dv, off + dataOff, off + reclen, nsamp, enc, wordLE);
+      if (data) recs.push({ id: `${net}.${sta}.${loc}.${cha}`, net, sta, loc, cha, t, rate, data });
+    }
+    off += reclen;
+  }
+  return recs;
+}
+
+function decodeData(dv, a, b, n, enc, le) {
+  const out = new Float64Array(n);
+  b = Math.min(b, dv.byteLength);
+  if (enc === 1) { for (let i = 0; i < n && a + 2 * i + 2 <= b; i++) out[i] = dv.getInt16(a + 2 * i, le); return out; }
+  if (enc === 3) { for (let i = 0; i < n && a + 4 * i + 4 <= b; i++) out[i] = dv.getInt32(a + 4 * i, le); return out; }
+  if (enc === 4) { for (let i = 0; i < n && a + 4 * i + 4 <= b; i++) out[i] = dv.getFloat32(a + 4 * i, le); return out; }
+  if (enc === 5) { for (let i = 0; i < n && a + 8 * i + 8 <= b; i++) out[i] = dv.getFloat64(a + 8 * i, le); return out; }
+  if (enc === 10 || enc === 11) return decodeSteim(dv, a, b, n, enc === 11, le);
+  return null;
+}
+
+function decodeSteim(dv, a, b, n, steim2, le) {
+  const diffs = [];
+  let x0 = 0, xn = 0;
+  const sx = (v, bits) => (v << (32 - bits)) >> (32 - bits);
+  for (let fo = a, fi = 0; fo + 64 <= b && diffs.length < n + 8; fo += 64, fi++) {
+    const ctrl = dv.getUint32(fo, le);
+    for (let w = 1; w < 16; w++) {
+      const code = (ctrl >>> (30 - 2 * w)) & 3;
+      const word = dv.getUint32(fo + 4 * w, le);
+      if (fi === 0 && w === 1) { x0 = dv.getInt32(fo + 4, le); continue; }
+      if (fi === 0 && w === 2) { xn = dv.getInt32(fo + 8, le); continue; }
+      if (code === 0) continue;
+      if (code === 1) { for (let k = 0; k < 4; k++) diffs.push(sx((word >>> (24 - 8 * k)) & 0xff, 8)); continue; }
+      if (!steim2) {
+        if (code === 2) { diffs.push(sx((word >>> 16) & 0xffff, 16), sx(word & 0xffff, 16)); }
+        else diffs.push(word | 0);
+        continue;
+      }
+      const dnib = word >>> 30;
+      if (code === 2) {
+        if (dnib === 1) diffs.push(sx(word & 0x3fffffff, 30));
+        else if (dnib === 2) { diffs.push(sx((word >>> 15) & 0x7fff, 15), sx(word & 0x7fff, 15)); }
+        else if (dnib === 3) { for (let k = 0; k < 3; k++) diffs.push(sx((word >>> (20 - 10 * k)) & 0x3ff, 10)); }
+      } else {
+        if (dnib === 0) { for (let k = 0; k < 5; k++) diffs.push(sx((word >>> (24 - 6 * k)) & 0x3f, 6)); }
+        else if (dnib === 1) { for (let k = 0; k < 6; k++) diffs.push(sx((word >>> (25 - 5 * k)) & 0x1f, 5)); }
+        else if (dnib === 2) { for (let k = 0; k < 7; k++) diffs.push(sx((word >>> (24 - 4 * k)) & 0xf, 4)); }
+      }
+    }
+  }
+  const out = new Float64Array(n);
+  out[0] = x0;
+  for (let i = 1; i < n; i++) out[i] = out[i - 1] + (diffs[i] || 0);
+  return out;
+}
+
+// gabungkan record per channel → array kontinu (gap = NaN)
+function buildTraces(records) {
+  const byId = new Map();
+  for (const r of records) { if (!byId.has(r.id)) byId.set(r.id, []); byId.get(r.id).push(r); }
+  const traces = [];
+  for (const [id, rs] of byId) {
+    rs.sort((p, q) => p.t - q.t);
+    const sr = rs[0].rate;
+    const t0 = rs[0].t;
+    let tEnd = t0;
+    for (const r of rs) tEnd = Math.max(tEnd, r.t + (r.data.length - 1) / sr);
+    const n = Math.round((tEnd - t0) * sr) + 1;
+    const d = new Float64Array(n).fill(NaN);
+    for (const r of rs) {
+      if (Math.abs(r.rate - sr) > 1e-6) continue;
+      const i0 = Math.round((r.t - t0) * sr);
+      for (let k = 0; k < r.data.length; k++) { const j = i0 + k; if (j >= 0 && j < n && Number.isNaN(d[j])) d[j] = r.data[k]; }
+    }
+    let valid = 0; for (let i = 0; i < n; i++) if (!Number.isNaN(d[i])) valid++;
+    const cha = rs[0].cha;
+    let comp = cha.slice(-1).toUpperCase();
+    comp = { "1": "N", "2": "E" }[comp] || comp;
+    traces.push({ id, sta: rs[0].sta, net: rs[0].net, cha, comp, sr, t0, data: d, valid });
+  }
+  return traces;
+}
+
+function pickZNE(traces) {
+  const best = {};
+  for (const tr of traces) {
+    if (!"ZNE".includes(tr.comp)) continue;
+    if (!best[tr.comp] || tr.valid > best[tr.comp].valid) best[tr.comp] = tr;
+  }
+  const miss = ["Z", "N", "E"].filter(c => !best[c]);
+  if (miss.length) throw new Error("Incomplete components, missing: " + miss.join(", "));
+  const sr = best.Z.sr;
+  if (best.N.sr !== sr || best.E.sr !== sr) throw new Error("Sampling rates of the three components differ");
+  const t0 = Math.max(best.Z.t0, best.N.t0, best.E.t0);
+  const t1 = Math.min(...["Z", "N", "E"].map(c => best[c].t0 + (best[c].data.length - 1) / sr));
+  if (t1 <= t0) throw new Error("The three components do not overlap in time");
+  const n = Math.floor((t1 - t0) * sr + 1e-6) + 1;
+  const out = { sr, t0, n, sta: best.Z.sta, net: best.Z.net, ids: {} };
+  for (const c of "ZNE") {
+    const i0 = Math.round((t0 - best[c].t0) * sr);
+    out[c] = best[c].data.subarray(i0, i0 + n);
+    out.ids[c] = best[c].id;
+  }
+  return out;
+}
+
+// ===================== Pengolahan =====================
+function prepareSignals(tr, p) {
+  const n = tr.n, sr = tr.sr;
+  const gapOk = new Uint8Array(n).fill(1);
+  const filled = {};
+  for (const c of "ZNE") {
+    const src = tr[c];
+    const d = new Float64Array(n);
+    let last = -1;
+    for (let i = 0; i < n; i++) {
+      if (Number.isNaN(src[i])) { gapOk[i] = 0; continue; }
+      d[i] = src[i];
+      if (last >= 0 && i - last > 1) { const a = d[last], b = src[i]; for (let k = last + 1; k < i; k++) d[k] = a + (b - a) * (k - last) / (i - last); }
+      else if (last < 0 && i > 0) { for (let k = 0; k < i; k++) d[k] = src[i]; }
+      last = i;
+    }
+    if (last >= 0) for (let k = last + 1; k < n; k++) d[k] = d[last];
+    let m = 0; for (let i = 0; i < n; i++) m += d[i]; m /= n;
+    for (let i = 0; i < n; i++) d[i] -= m;
+    filled[c] = d;
+  }
+  const trigOk = new Uint8Array(n).fill(1);
+  const nsta = Math.floor(p.sta * sr), nlta = Math.floor(p.lta * sr);
+  if (n > nlta * 2) {
+    for (const c of "ZNE") {
+      const d = filled[c];
+      const cs = new Float64Array(n + 1);
+      for (let i = 0; i < n; i++) cs[i + 1] = cs[i] + Math.abs(d[i]);
+      for (let i = nlta; i < n; i++) {
+        const idx = i + 1;
+        const s = (cs[idx] - cs[Math.max(idx - nsta, 0)]) / Math.min(idx, nsta);
+        const l = (cs[idx] - cs[Math.max(idx - nlta, 0)]) / Math.min(idx, nlta);
+        const r = l > 0 ? s / l : 1;
+        if (r < p.rmin || r > p.rmax) trigOk[i] = 0;
+      }
+    }
+  }
+  return { data: filled, gapOk, trigOk, sr, n };
+}
+
+function gridWindows(prep, nwin, step) {
+  const { gapOk, trigOk, n } = prep;
+  const cg = new Int32Array(n + 1), ct = new Int32Array(n + 1);
+  for (let i = 0; i < n; i++) { cg[i + 1] = cg[i] + (gapOk[i] ? 0 : 1); ct[i + 1] = ct[i] + (trigOk[i] ? 0 : 1); }
+  const starts = [], valid = [], auto = [];
+  for (let s = 0; s + nwin <= n; s += step) {
+    const v = cg[s + nwin] - cg[s] === 0;
+    starts.push(s); valid.push(v); auto.push(v && ct[s + nwin] - ct[s] === 0);
+  }
+  return { starts, valid, auto };
+}
+
+// FFT radix-2 + Bluestein untuk panjang sembarang
+function fftRadix2(re, im, inv) {
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) { let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = (inv ? 2 : -2) * Math.PI / len;
+    const wr = Math.cos(ang), wi = Math.sin(ang);
+    for (let i = 0; i < n; i += len) {
+      let cr = 1, ci = 0;
+      for (let k = 0; k < len / 2; k++) {
+        const a = i + k, b = a + len / 2;
+        const tr = re[b] * cr - im[b] * ci, ti = re[b] * ci + im[b] * cr;
+        re[b] = re[a] - tr; im[b] = im[a] - ti; re[a] += tr; im[a] += ti;
+        const ncr = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = ncr;
+      }
+    }
+  }
+}
+const _blue = new Map();
+function bluesteinPlan(n) {
+  if (_blue.has(n)) return _blue.get(n);
+  let m = 1; while (m < 2 * n - 1) m <<= 1;
+  const wr = new Float64Array(n), wi = new Float64Array(n);
+  for (let k = 0; k < n; k++) { const kk = (k * k) % (2 * n); const ang = Math.PI * kk / n; wr[k] = Math.cos(ang); wi[k] = -Math.sin(ang); }
+  const br = new Float64Array(m), bi = new Float64Array(m);
+  br[0] = wr[0]; bi[0] = -wi[0];
+  for (let k = 1; k < n; k++) { br[k] = br[m - k] = wr[k]; bi[k] = bi[m - k] = -wi[k]; }
+  fftRadix2(br, bi, false);
+  const plan = { n, m, wr, wi, br, bi };
+  _blue.set(n, plan);
+  return plan;
+}
+function rfftAbs(x) { // |DFT| untuk k = 0..floor(n/2)
+  const n = x.length, half = Math.floor(n / 2) + 1, out = new Float64Array(half);
+  if ((n & (n - 1)) === 0) {
+    const re = Float64Array.from(x), im = new Float64Array(n);
+    fftRadix2(re, im, false);
+    for (let k = 0; k < half; k++) out[k] = Math.hypot(re[k], im[k]);
+    return out;
+  }
+  const P = bluesteinPlan(n), m = P.m;
+  const ar = new Float64Array(m), ai = new Float64Array(m);
+  for (let k = 0; k < n; k++) { ar[k] = x[k] * P.wr[k]; ai[k] = x[k] * P.wi[k]; }
+  fftRadix2(ar, ai, false);
+  for (let k = 0; k < m; k++) { const r = ar[k] * P.br[k] - ai[k] * P.bi[k]; ai[k] = ar[k] * P.bi[k] + ai[k] * P.br[k]; ar[k] = r; }
+  fftRadix2(ar, ai, true);
+  for (let k = 0; k < half; k++) {
+    const cr = ar[k] / m, ci = ai[k] / m;
+    out[k] = Math.hypot(cr * P.wr[k] - ci * P.wi[k], cr * P.wi[k] + ci * P.wr[k]);
+  }
+  return out;
+}
+
+function freqAxis(fmin, fmax, sr, nf = 300) {
+  fmax = Math.min(fmax, 0.45 * sr);
+  const f = new Float64Array(nf), a = Math.log10(fmin), b = Math.log10(fmax);
+  for (let i = 0; i < nf; i++) f[i] = Math.pow(10, a + (b - a) * i / (nf - 1));
+  return f;
+}
+
+function koPlan(nwin, sr, f, b) {
+  const df = sr / nwin, nraw = Math.floor(nwin / 2) + 1, plan = [];
+  for (const fc of f) {
+    const lo = Math.max(1, Math.ceil(fc * Math.pow(10, -Math.PI / b) / df - 1e-9));
+    const hi = Math.min(nraw - 1, Math.floor(fc * Math.pow(10, Math.PI / b) / df + 1e-9));
+    const idx = [], w = []; let s = 0;
+    for (let k = lo; k <= hi; k++) {
+      const x = b * Math.log10(k * df / fc);
+      if (Math.abs(x) > Math.PI) continue;
+      const v = x === 0 ? 1 : Math.pow(Math.sin(x) / x, 4);
+      idx.push(k); w.push(v); s += v;
+    }
+    plan.push({ idx, w: w.map(v => v / (s || 1)) });
+  }
+  return plan;
+}
+
+function tukey(n, alpha) {
+  const w = new Float64Array(n).fill(1);
+  const width = Math.floor(alpha * (n - 1) / 2.0);
+  for (let i = 0; i <= width; i++) {
+    const v = 0.5 * (1 + Math.cos(Math.PI * (-1 + 2.0 * i / alpha / (n - 1))));
+    w[i] = v; w[n - 1 - i] = v;
+  }
+  return w;
+}
+
+function windowHV(prep, starts, valid, nwin, f, p) {
+  const tp = tukey(nwin, 0.1), plan = koPlan(nwin, prep.sr, f, p.ko);
+  const nf = f.length, hv = [];
+  const xs = new Float64Array(nwin);
+  let sx = 0, sxx = 0; for (let i = 0; i < nwin; i++) { sx += i; sxx += i * i; }
+  for (let w = 0; w < starts.length; w++) {
+    if (!valid[w]) { hv.push(null); continue; }
+    const s0 = starts[w], spec = {};
+    for (const c of "ZNE") {
+      const d = prep.data[c];
+      let sy = 0, sxy = 0;
+      for (let i = 0; i < nwin; i++) { const y = d[s0 + i]; sy += y; sxy += i * y; }
+      const slope = (nwin * sxy - sx * sy) / (nwin * sxx - sx * sx), icpt = (sy - slope * sx) / nwin;
+      for (let i = 0; i < nwin; i++) xs[i] = (d[s0 + i] - (icpt + slope * i)) * tp[i];
+      const A = rfftAbs(xs), sm = new Float64Array(nf);
+      for (let j = 0; j < nf; j++) { const P = plan[j]; let v = 0; for (let q = 0; q < P.idx.length; q++) v += A[P.idx[q]] * P.w[q]; sm[j] = v; }
+      spec[c] = sm;
+    }
+    const h = new Float64Array(nf);
+    for (let j = 0; j < nf; j++) {
+      const N = spec.N[j], E = spec.E[j], Z = spec.Z[j];
+      const H = p.hor === "geometric" ? Math.sqrt(N * E) : p.hor === "arithmetic" ? (N + E) / 2 : Math.sqrt((N * N + E * E) / 2);
+      const r = H / Z;
+      h[j] = Number.isFinite(r) ? r : NaN;
+    }
+    hv.push(h);
+  }
+  return hv;
+}
+
+function hvStats(f, hv, keep, winS, band) {
+  const idx = []; for (let k = 0; k < hv.length; k++) if (keep[k] && hv[k]) idx.push(k);
+  if (!idx.length) throw new Error("No windows selected");
+  const nf = f.length;
+  const pmin = band && band[0] ? band[0] : f[0], pmax = band && band[1] ? band[1] : f[nf - 1];
+  const inb = j => f[j] >= pmin && f[j] <= pmax;
+  const mean = new Float64Array(nf), sfac = new Float64Array(nf);
+  for (let j = 0; j < nf; j++) {
+    let s = 0, c = 0;
+    for (const k of idx) { const v = Math.log(hv[k][j]); if (Number.isFinite(v)) { s += v; c++; } }
+    const mu = c ? s / c : NaN;
+    let ss = 0;
+    for (const k of idx) { const v = Math.log(hv[k][j]); if (Number.isFinite(v)) ss += (v - mu) ** 2; }
+    mean[j] = Math.exp(mu);
+    sfac[j] = c > 1 ? Math.exp(Math.sqrt(ss / (c - 1))) : 1;
+  }
+  let i0 = -1;
+  for (let j = 0; j < nf; j++) if (inb(j) && Number.isFinite(mean[j]) && (i0 < 0 || mean[j] > mean[i0])) i0 = j;
+  if (i0 < 0) throw new Error("f0 search range empty");
+  const peakOf = h => { let b = -1; for (let j = 0; j < nf; j++) if (inb(j) && Number.isFinite(h[j]) && (b < 0 || h[j] > h[b])) b = j; return f[Math.max(b, 0)]; };
+  const fw = idx.map(k => peakOf(hv[k]));
+  const lf = fw.map(Math.log), lm = lf.reduce((a, b) => a + b, 0) / lf.length;
+  const lsd = lf.length > 1 ? Math.sqrt(lf.reduce((a, b) => a + (b - lm) ** 2, 0) / (lf.length - 1)) : 0;
+  const fm = fw.reduce((a, b) => a + b, 0) / fw.length;
+  const sigmaF = fw.length > 1 ? Math.sqrt(fw.reduce((a, b) => a + (b - fm) ** 2, 0) / (fw.length - 1)) : 0;
+  return { f, mean, sfac, i0, f0: f[i0], A0: mean[i0], f0w: Math.exp(lm), f0wSd: Math.exp(lsd), sigmaF,
+           idx, nUsed: idx.length, winS, band: [pmin, pmax] };
+}
+
+function sesame(r) {
+  const { f, mean: m, sfac: sf, f0, A0, winS: lw, nUsed: nw } = r;
+  let eps, theta;
+  if (f0 < 0.2) { eps = 0.25 * f0; theta = 3.0; } else if (f0 < 0.5) { eps = 0.2 * f0; theta = 2.5; }
+  else if (f0 < 1) { eps = 0.15 * f0; theta = 2.0; } else if (f0 < 2) { eps = 0.1 * f0; theta = 1.78; }
+  else { eps = 0.05 * f0; theta = 1.58; }
+  const rel = [], clr = [];
+  rel.push(["f0 > 10/Lw", f0 > 10 / lw, `${f0.toFixed(3)} > ${(10 / lw).toFixed(3)}`]);
+  const nc = lw * nw * f0;
+  rel.push(["nc = Lw·nw·f0 > 200", nc > 200, `${nc.toFixed(0)} > 200`]);
+  const lim = f0 > 0.5 ? 2 : 3;
+  let smax = -Infinity; for (let j = 0; j < f.length; j++) if (f[j] >= 0.5 * f0 && f[j] <= 2 * f0) smax = Math.max(smax, sf[j]);
+  rel.push([`σA(f) < ${lim} for 0.5f0–2f0`, smax < lim, `max ${smax.toFixed(2)}`]);
+  let fminus = null, fplus = null;
+  for (let j = 0; j < f.length; j++) {
+    if (f[j] >= f0 / 4 && f[j] <= f0 && m[j] < A0 / 2) fminus = f[j];
+    if (fplus === null && f[j] >= f0 && f[j] <= 4 * f0 && m[j] < A0 / 2) fplus = f[j];
+  }
+  clr.push(["∃ f⁻ ∈ [f0/4, f0]: A < A0/2", fminus !== null, fminus !== null ? `f⁻=${fminus.toFixed(3)} Hz` : "none"]);
+  clr.push(["∃ f⁺ ∈ [f0, 4f0]: A < A0/2", fplus !== null, fplus !== null ? `f⁺=${fplus.toFixed(3)} Hz` : "none"]);
+  clr.push(["A0 > 2", A0 > 2, `${A0.toFixed(2)} > 2`]);
+  let ju = -1, jl = -1;
+  for (let j = 0; j < f.length; j++) {
+    if (f[j] < r.band[0] || f[j] > r.band[1]) continue;
+    if (ju < 0 || m[j] * sf[j] > m[ju] * sf[ju]) ju = j;
+    if (jl < 0 || m[j] / sf[j] > m[jl] / sf[jl]) jl = j;
+  }
+  const fu = f[ju], fl = f[jl];
+  clr.push(["A(f)±σA peak within f0 ± 5%", Math.abs(fu - f0) <= 0.05 * f0 && Math.abs(fl - f0) <= 0.05 * f0, `${fl.toFixed(3)} / ${fu.toFixed(3)} Hz`]);
+  clr.push([`σf < ε(f0) = ${eps.toFixed(3)}`, r.sigmaF < eps, `σf=${r.sigmaF.toFixed(3)}`]);
+  const sA0 = sf[r.i0];
+  clr.push([`σA(f0) < θ(f0) = ${theta}`, sA0 < theta, sA0.toFixed(3)]);
+  return { rel, clr, nrel: rel.filter(c => c[1]).length, nclr: clr.filter(c => c[1]).length };
+}
+/*CORE-END*/
+
+// ===================== State & UI =====================
+const $ = id => document.getElementById(id);
+const MSEED_RE = /\.(mseed|miniseed|msd|seed|ms)$/i;
+const S = { stations: [], cur: -1, mode: "remove", params: null };
+
+function readParams() {
+  const v = id => parseFloat($(id).value);
+  return { win: v("pWin") || 40, over: Math.min(90, Math.max(0, v("pOver") || 0)), ko: v("pKo") || 40,
+           fmin: v("pFmin") || 0.5, fmax: v("pFmax") || 20, hor: $("pHor").value,
+           sta: v("pSta") || 1, lta: v("pLta") || 30, rmin: isNaN(v("pRmin")) ? 0.2 : v("pRmin"), rmax: v("pRmax") || 2.5 };
+}
+S.params = readParams();
+
+function setStatus(t, err) { const el = $("status"); el.textContent = t || ""; el.classList.toggle("err", !!err); }
+function busy(on, t) { $("busy").hidden = !on; if (t) $("busy").textContent = t; }
+const tick = () => new Promise(r => setTimeout(r, 20));
+
+function addStations(groups) {
+  for (const g of groups) {
+    if (!g.files.length) continue;
+    let name = g.name, k = 2;
+    while (S.stations.some(s => s.name === name)) name = `${g.name} (${k++})`;
+    S.stations.push({ name, files: g.files, tr: null, an: null, keep: null, band: [null, null], hist: [], res: null, manual: false, err: null });
+  }
+  renderStations();
+  if (S.cur < 0 && S.stations.length) selectStation(0);
+}
+
+function groupByDir(items) { 
+  const m = new Map();
+  for (const it of items) {
+    if (!MSEED_RE.test(it.path) || /(^|\/)\./.test(it.path) || it.path.includes("__MACOSX")) continue;
+    const parts = it.path.split("/"); parts.pop();
+    const dir = parts.join("/");
+    if (!m.has(dir)) m.set(dir, []);
+    m.get(dir).push({ name: it.path.split("/").pop(), get: it.get });
+  }
+  return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))
+    .map(([dir, files]) => ({ name: dir.split("/").pop() || "Selected data", files }));
+}
+
+function fromFileList(list) {
+  return groupByDir([...list].map(f => ({ path: f.webkitRelativePath || f.name, get: () => f.arrayBuffer() })));
+}
+async function fromZip(file) {
+  if (!window.JSZip) { setStatus("ZIP library failed to load. Extract ZIP first then select the folder.", true); return []; }
+  const zip = await JSZip.loadAsync(file);
+  const items = [];
+  zip.forEach((path, e) => { if (!e.dir) items.push({ path, get: () => e.async("arraybuffer") }); });
+  return groupByDir(items);
+}
+
+async function loadStation(st) {
+  if (st.tr) return;
+  const recs = [];
+  for (const f of st.files) {
+    try { recs.push(...parseMiniSeed(await f.get())); } catch (e) { }
+  }
+  if (!recs.length) throw new Error("No MiniSEED data read");
+  st.tr = pickZNE(buildTraces(recs));
+}
+
+function analyze(st) {
+  const p = S.params, tr = st.tr;
+  const prep = prepareSignals(tr, p);
+  const nwin = Math.round(p.win * tr.sr), step = Math.max(1, Math.round(nwin * (1 - p.over / 100)));
+  const g = gridWindows(prep, nwin, step);
+  if (!g.valid.some(Boolean)) throw new Error("No gap-free window. Reduce window length.");
+  const f = freqAxis(p.fmin, p.fmax, tr.sr);
+  const hv = windowHV(prep, g.starts, g.valid, nwin, f, p);
+  st.an = { prep, nwin, f, hv, ...g, env: null };
+  st.keep = g.auto.some(Boolean) ? g.auto.slice() : g.valid.slice();
+  st.manual = false; st.hist = [];
+}
+
+function recompute(st) {
+  try {
+    st.res = hvStats(st.an.f, st.an.hv, st.keep, S.params.win, st.band);
+    st.ses = sesame(st.res);
+    st.err = null;
+  } catch (e) { st.res = null; st.ses = null; st.err = e.message; }
+}
+
+async function ensure(st) {
+  await loadStation(st);
+  if (!st.an) { analyze(st); recompute(st); }
+}
+
+async function selectStation(i) {
+  S.cur = i;
+  const st = S.stations[i];
+  renderStations();
+  busy(true, `Processing ${st.name}...`); await tick();
+  try { await ensure(st); setStatus(""); }
+  catch (e) { st.err = e.message; setStatus(`${st.name}: ${e.message}`, true); }
+  busy(false);
+  renderAll();
+}
+
+function current() { return S.stations[S.cur]; }
+
+function push(st) { st.hist.push({ keep: st.keep.slice(), band: st.band.slice(), manual: st.manual }); if (st.hist.length > 60) st.hist.shift(); }
+function changed(st) { recompute(st); renderAll(); }
+
+// ---------- rendering ----------
+function tok(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function winColor(k, n, a = 1) { return `hsla(${(360 * k / Math.max(1, n)).toFixed(1)},100%,50%,${a})`; }
+function fmt(v, d = 3) { return Number.isFinite(v) ? v.toFixed(d) : "–"; }
+
+function renderStations() {
+  const ul = $("stations"); ul.innerHTML = "";
+  $("noStations").hidden = S.stations.length > 0;
+  S.stations.forEach((st, i) => {
+    const li = document.createElement("li"), b = document.createElement("button");
+    b.type = "button"; b.setAttribute("aria-current", i === S.cur ? "true" : "false");
+    const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = st.name;
+    const f0 = document.createElement("span"); f0.className = "f0"; f0.textContent = st.res ? `${st.res.f0.toFixed(2)} Hz` : "";
+    const sub = document.createElement("span"); sub.className = "sub";
+    sub.textContent = st.err ? st.err : `${st.files.length} files${st.res ? ` · A0 ${st.res.A0.toFixed(2)}${st.manual ? " · manual" : ""}` : ""}`;
+    b.append(nm, f0, sub); b.onclick = () => selectStation(i);
+    li.append(b); ul.append(li);
+  });
+}
+
+function sizeCanvas(cv) {
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  const w = Math.max(10, Math.round(r.width * dpr)), h = Math.max(10, Math.round(r.height * dpr));
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, W: r.width, H: r.height };
+}
+
+function niceStep(range, target) {
+  const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p;
+  return (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10) * p;
+}
+
+const SIGPAD = { l: 26, r: 10, t: 6, b: 36 };
+function sigGeom(W, H) { return { x0: SIGPAD.l, x1: W - SIGPAD.r, y0: SIGPAD.t, y1: H - SIGPAD.b }; }
+
+function drawSignals(ctx, W, H, st, pal, drag) {
+  ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+  if (!st || !st.an) { ctx.fillStyle = pal.muted; ctx.font = `13px ${pal.font}`; ctx.fillText(st && st.err ? st.err : "Select data to begin.", 12, H / 2); return; }
+  const { prep, starts, valid, nwin } = st.an, sr = prep.sr, T = prep.n / sr;
+  const g = sigGeom(W, H), rowH = (g.y1 - g.y0) / 3;
+  const X = t => g.x0 + (g.x1 - g.x0) * t / T;
+  const nW = starts.length;
+  for (let k = 0; k < nW; k++) {
+    const xa = X(starts[k] / sr), xb = X((starts[k] + nwin) / sr);
+    ctx.fillStyle = !valid[k] ? pal.gap : st.keep[k] ? winColor(k, nW, st.hover === k ? 0.75 : 0.42) : pal.reject;
+    ctx.fillRect(xa, g.y0, Math.max(1, xb - xa - 0.5), g.y1 - g.y0);
+  }
+  // envelope
+  const px = Math.max(1, Math.round(g.x1 - g.x0));
+  if (!st.an.env || st.an.env.px !== px) {
+    const env = { px };
+    for (const c of "ZNE") {
+      const d = prep.data[c], mn = new Float32Array(px), mx = new Float32Array(px);
+      for (let i = 0; i < px; i++) {
+        const a = Math.floor(i * prep.n / px), b = Math.max(a + 1, Math.floor((i + 1) * prep.n / px));
+        let lo = Infinity, hi = -Infinity;
+        for (let j = a; j < b; j++) { const v = d[j]; if (v < lo) lo = v; if (v > hi) hi = v; }
+        mn[i] = lo; mx[i] = hi;
+      }
+      const sample = []; for (let j = 0; j < prep.n; j += 7) sample.push(Math.abs(d[j]));
+      sample.sort((a, b) => a - b);
+      env[c] = { mn, mx, lim: (sample[Math.floor(0.995 * (sample.length - 1))] || 1) * 1.6 };
+    }
+    st.an.env = env;
+  }
+  ["Z", "N", "E"].forEach((c, r) => {
+    const e = st.an.env[c], yc = g.y0 + rowH * (r + 0.5), sc = rowH / 2 / e.lim;
+    ctx.save(); ctx.beginPath(); ctx.rect(g.x0, g.y0 + rowH * r, g.x1 - g.x0, rowH); ctx.clip();
+    ctx.fillStyle = pal.ink; ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    for (let i = 0; i < px; i++) ctx.lineTo(g.x0 + i, yc - e.mx[i] * sc);
+    for (let i = px - 1; i >= 0; i--) ctx.lineTo(g.x0 + i, yc - e.mn[i] * sc);
+    ctx.closePath(); ctx.fill(); ctx.restore();
+    ctx.fillStyle = pal.ink; ctx.font = `600 13px ${pal.font}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(c, SIGPAD.l / 2, yc);
+    if (r) { ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(g.x0, g.y0 + rowH * r); ctx.lineTo(g.x1, g.y0 + rowH * r); ctx.stroke(); }
+  });
+  ctx.strokeStyle = pal.line; ctx.strokeRect(g.x0 + 0.5, g.y0 + 0.5, g.x1 - g.x0 - 1, g.y1 - g.y0 - 1);
+  
+  const stepS = niceStep(T / 60, 8) * 60;
+  ctx.fillStyle = pal.muted; ctx.font = `11px ${pal.mono}`; ctx.textAlign = "center"; ctx.textBaseline = "top";
+  for (let t = 0; t <= T + 1e-6; t += stepS) {
+    const x = X(t); ctx.fillRect(x, g.y1, 1, 4);
+    ctx.fillText(`${+(t / 60).toFixed(1)}`, x, g.y1 + 5);
+  }
+  ctx.font = `12px ${pal.font}`; ctx.fillText("Time (minutes)", (g.x0 + g.x1) / 2, g.y1 + 20);
+  if (drag) {
+    ctx.fillStyle = S.mode === "remove" ? "rgba(200,40,30,.22)" : "rgba(30,150,70,.22)";
+    ctx.fillRect(Math.min(drag.a, drag.b), g.y0, Math.abs(drag.b - drag.a), g.y1 - g.y0);
+  }
+}
+
+const HVPAD = { l: 46, r: 12, t: 30, b: 40 };
+function hvGeom(W, H, r) {
+  const g = { x0: HVPAD.l, x1: W - HVPAD.r, y0: HVPAD.t, y1: H - HVPAD.b };
+  const lf0 = Math.log10(r.f[0]), lf1 = Math.log10(r.f[r.f.length - 1]);
+  let ymax = 2; for (let j = 0; j < r.f.length; j++) if (Number.isFinite(r.mean[j] * r.sfac[j])) ymax = Math.max(ymax, r.mean[j] * r.sfac[j] * 1.35);
+  g.ymax = ymax;
+  g.X = f => g.x0 + (g.x1 - g.x0) * (Math.log10(f) - lf0) / (lf1 - lf0);
+  g.F = x => Math.pow(10, lf0 + (x - g.x0) / (g.x1 - g.x0) * (lf1 - lf0));
+  g.Y = v => g.y1 - (g.y1 - g.y0) * v / ymax;
+  return g;
+}
+
+function drawHV(ctx, W, H, st, pal, opts = {}) {
+  ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+  const r = st && st.res;
+  if (!r) { ctx.fillStyle = pal.muted; ctx.font = `13px ${pal.font}`; ctx.fillText(st && st.err ? st.err : "H/V curve appears after selecting data.", 16, H / 2); return; }
+  const g = hvGeom(W, H, r), f = r.f, hv = st.an.hv, nW = hv.length;
+  
+  ctx.fillStyle = pal.band1; ctx.fillRect(g.X(r.f0w / r.f0wSd), g.y0, g.X(r.f0w * r.f0wSd) - g.X(r.f0w / r.f0wSd), g.y1 - g.y0);
+  ctx.fillStyle = pal.band2; ctx.fillRect(g.X(r.f0w / 1.02), g.y0, g.X(r.f0w * 1.02) - g.X(r.f0w / 1.02), g.y1 - g.y0);
+  
+  ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+  const decades = [];
+  for (let e = Math.floor(Math.log10(f[0])); e <= Math.ceil(Math.log10(f[f.length - 1])); e++) for (let m = 1; m <= 9; m++) decades.push(m * Math.pow(10, e));
+  for (const v of decades) if (v >= f[0] && v <= f[f.length - 1]) { const x = g.X(v); ctx.beginPath(); ctx.moveTo(x, g.y0); ctx.lineTo(x, g.y1); ctx.stroke(); }
+  const ys = niceStep(g.ymax, 6);
+  for (let v = ys; v < g.ymax; v += ys) { const y = g.Y(v); ctx.beginPath(); ctx.moveTo(g.x0, y); ctx.lineTo(g.x1, y); ctx.stroke(); }
+  ctx.setLineDash([]);
+  
+  const full = r.band[0] <= f[0] * 1.001 && r.band[1] >= f[f.length - 1] * 0.999;
+  if (!full) {
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.4; ctx.setLineDash([4, 3]);
+    for (const b of r.band) { const x = g.X(b); ctx.beginPath(); ctx.moveTo(x, g.y0); ctx.lineTo(x, g.y1); ctx.stroke(); }
+    ctx.setLineDash([]);
+  }
+  ctx.save(); ctx.beginPath(); ctx.rect(g.x0, g.y0, g.x1 - g.x0, g.y1 - g.y0); ctx.clip();
+  const line = (arr, color, lw, dash) => {
+    ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.setLineDash(dash || []); ctx.beginPath();
+    let pen = false;
+    for (let j = 0; j < f.length; j++) { const v = arr(j); if (!Number.isFinite(v)) { pen = false; continue; } const x = g.X(f[j]), y = g.Y(v); pen ? ctx.lineTo(x, y) : ctx.moveTo(x, y); pen = true; }
+    ctx.stroke(); ctx.setLineDash([]);
+  };
+  for (const k of r.idx) if (k !== st.hover) line(j => hv[k][j], winColor(k, nW, 0.85), opts.lw || 1);
+  line(j => r.mean[j] * r.sfac[j], pal.curve, 2, [7, 5]);
+  line(j => r.mean[j] / r.sfac[j], pal.curve, 2, [7, 5]);
+  line(j => r.mean[j], pal.curve, 2.8);
+  if (st.hover != null && st.keep[st.hover] && hv[st.hover]) { line(j => hv[st.hover][j], pal.bg, 5); line(j => hv[st.hover][j], winColor(st.hover, nW, 1), 2.4); }
+  ctx.restore();
+  
+  ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.strokeRect(g.x0 + 0.5, g.y0 + 0.5, g.x1 - g.x0 - 1, g.y1 - g.y0 - 1);
+  ctx.fillStyle = pal.ink; ctx.font = `12px ${pal.mono}`; ctx.textAlign = "center"; ctx.textBaseline = "top";
+  for (const v of [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50]) if (v >= f[0] * 0.999 && v <= f[f.length - 1] * 1.001) ctx.fillText(String(v), g.X(v), g.y1 + 6);
+  ctx.textAlign = "right"; ctx.textBaseline = "middle";
+  for (let v = 0; v < g.ymax; v += ys) ctx.fillText(+v.toFixed(2) + "", g.x0 - 6, g.Y(v));
+  ctx.font = `13px ${pal.font}`; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  ctx.fillText("Frequency (Hz)", (g.x0 + g.x1) / 2, H - 6);
+  ctx.save(); ctx.translate(13, (g.y0 + g.y1) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText("H/V", 0, 0); ctx.restore();
+  ctx.font = `600 15px ${pal.display}`; ctx.textAlign = "left"; ctx.fillText(st.name, g.x0, 20);
+  
+  const lines = [`f0 = ${r.f0.toFixed(3)} Hz`, `A0 = ${r.A0.toFixed(3)}`, `f0 (window) = ${r.f0w.toFixed(3)} ×/÷ ${r.f0wSd.toFixed(3)}`, `Windows: ${r.nUsed}/${st.an.valid.filter(Boolean).length} × ${r.winS} s`];
+  ctx.font = `12px ${pal.mono}`;
+  const bw = Math.max(...lines.map(l => ctx.measureText(l).width)) + 16, bh = lines.length * 16 + 10;
+  const bx = g.x1 - bw - 8, by = g.y0 + 8;
+  ctx.fillStyle = pal.boxBg; ctx.strokeStyle = pal.line; ctx.fillRect(bx, by, bw, bh); ctx.strokeRect(bx + 0.5, by + 0.5, bw, bh);
+  ctx.fillStyle = pal.ink; ctx.textAlign = "right"; ctx.textBaseline = "top";
+  lines.forEach((l, i) => ctx.fillText(l, bx + bw - 8, by + 6 + i * 16));
+  if (opts.drag) { ctx.fillStyle = pal.accentA; ctx.fillRect(Math.min(opts.drag.a, opts.drag.b), g.y0, Math.abs(opts.drag.b - opts.drag.a), g.y1 - g.y0); }
+}
+
+function screenPalette() {
+  return { bg: tok("--panel"), ink: tok("--ink"), muted: tok("--muted"), line: tok("--line"), grid: tok("--line"),
+           gap: tok("--gap"), reject: tok("--reject"), curve: tok("--curve"), accent: tok("--accent"),
+           accentA: "rgba(10,108,135,.16)", band1: "rgba(140,150,158,.32)", band2: "rgba(110,120,128,.5)", boxBg: tok("--panel"),
+           font: getComputedStyle(document.body).fontFamily, mono: tok("--f-data"), display: tok("--f-display") };
+}
+function paperPalette() {
+  return { bg: "#ffffff", ink: "#111111", muted: "#444444", line: "#999999", grid: "#cccccc", gap: "rgba(0,0,0,.55)",
+           reject: "rgba(120,130,140,.18)", curve: "#000000", accent: "#1f5fbf", accentA: "rgba(31,95,191,.15)",
+           band1: "rgba(150,150,150,.45)", band2: "rgba(110,110,110,.6)", boxBg: "rgba(255,255,255,.92)",
+           font: tok("--f-body"), mono: tok("--f-data"), display: tok("--f-display") };
+}
+
+let sigDrag = null, hvDrag = null;
+function renderCanvases() {
+  const st = current(), pal = screenPalette();
+  const a = sizeCanvas($("sig")); drawSignals(a.ctx, a.W, a.H, st, pal, sigDrag);
+  const b = sizeCanvas($("hv")); drawHV(b.ctx, b.W, b.H, st, pal, { drag: hvDrag });
+}
+
+function renderResult() {
+  const st = current(), r = st && st.res;
+  $("rF0").innerHTML = r ? `${r.f0.toFixed(3)}<small>Hz</small>` : "–";
+  $("rA0").textContent = r ? r.A0.toFixed(3) : "–";
+  $("rT0").textContent = r ? `${(1 / r.f0).toFixed(4)} s` : "–";
+  $("rKg").textContent = r ? (r.A0 ** 2 / r.f0).toFixed(3) : "–";
+  $("rF0w").textContent = r ? `${r.f0w.toFixed(3)} Hz ×/÷ ${r.f0wSd.toFixed(3)}` : "–";
+  $("rN").textContent = r ? `${r.nUsed} of ${st.an.valid.filter(Boolean).length}` : "–";
+  const v = $("verdict"), c = $("crit"); v.innerHTML = ""; c.innerHTML = "";
+  if (st && st.an) {
+    $("sigTitle").textContent = `Signal · ${st.name}`;
+    const t = new Date(st.tr.t0 * 1000).toISOString().replace("T", " ").slice(0, 19);
+    $("sigMeta").textContent = `${st.tr.net}.${st.tr.sta} · ${t} UTC · ${st.tr.sr} Hz · ${(st.tr.n / st.tr.sr / 60).toFixed(1)} minutes`;
+  } else { $("sigTitle").textContent = "Signal"; $("sigMeta").textContent = ""; }
+  if (!r) return;
+  const s = st.ses;
+  const chip = (ok, t) => { const e = document.createElement("span"); e.className = `chip ${ok ? "ok" : "bad"}`; e.textContent = t; v.append(e); };
+  chip(s.nrel === 3, `Curve is ${s.nrel === 3 ? "reliable" : "unreliable"} · ${s.nrel}/3`);
+  chip(s.nclr >= 5, `Peak is ${s.nclr >= 5 ? "clear" : "unclear"} · ${s.nclr}/6`);
+  const block = (title, list) => {
+    const h = document.createElement("h3"); h.textContent = title; c.append(h);
+    for (const [n, ok, val] of list) {
+      const row = document.createElement("div"); row.className = `c ${ok ? "ok" : "no"}`;
+      const m = document.createElement("span"); m.className = "m"; m.textContent = ok ? "PASS" : "FAIL";
+      const t = document.createElement("span"); t.textContent = n;
+      const vv = document.createElement("span"); vv.className = "val"; vv.textContent = val;
+      row.append(m, t, vv); c.append(row);
+    }
+  };
+  block("SESAME · curve reliability", s.rel);
+  block("SESAME · clear peak", s.clr);
+}
+
+function renderSummary() {
+  const tb = $("sumBody"); tb.innerHTML = "";
+  S.stations.forEach((st, i) => {
+    const tr = document.createElement("tr"), r = st.res;
+    const cells = r ? [st.name, fmt(r.f0), fmt(r.A0), fmt(1 / r.f0, 4), fmt(r.A0 ** 2 / r.f0), `${r.nUsed}`, `${st.ses.nrel}/3`, `${st.ses.nclr}/6`, st.manual ? "manual" : "automatic"]
+                    : [st.name, "–", "–", "–", "–", "–", "–", "–", st.err ? "failed" : "unprocessed"];
+    cells.forEach((v, j) => { const td = document.createElement("td"); td.textContent = v; if (j > 0 && j < 8) td.className = "num"; if (j === 8) td.className = "l"; tr.append(td); });
+    tr.onclick = () => selectStation(i);
+    tb.append(tr);
+  });
+  if (!S.stations.length) { const tr = document.createElement("tr"), td = document.createElement("td"); td.colSpan = 9; td.className = "l"; td.style.color = "var(--muted)"; td.textContent = "No stations yet."; tr.append(td); tb.append(tr); }
+}
+
+function renderAll() { renderStations(); renderCanvases(); renderResult(); renderSummary(); }
+
+// ---------- interaksi ----------
+function localX(ev, cv) { const r = cv.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top, W: r.width, H: r.height }; }
+
+$("sig").addEventListener("pointerdown", ev => {
+  const st = current(); if (!st || !st.an || ev.button !== 0) return;
+  const p = localX(ev, $("sig")); sigDrag = { a: p.x, b: p.x, moved: false };
+  $("sig").setPointerCapture(ev.pointerId);
+});
+$("sig").addEventListener("pointermove", ev => {
+  const st = current(); if (!st || !st.an) return;
+  const p = localX(ev, $("sig"));
+  if (sigDrag) { sigDrag.b = p.x; if (Math.abs(sigDrag.b - sigDrag.a) > 4) sigDrag.moved = true; renderCanvases(); return; }
+  const k = windowAt(st, p); if (k !== st.hover) { st.hover = k; renderCanvases(); }
+});
+$("sig").addEventListener("pointerleave", () => { const st = current(); if (st && st.hover != null && !sigDrag) { st.hover = null; renderCanvases(); } });
+function windowAt(st, p) {
+  const { prep, starts, valid, nwin } = st.an, g = sigGeom(p.W, p.H), T = prep.n / prep.sr;
+  const t = (p.x - g.x0) / (g.x1 - g.x0) * T * prep.sr;
+  let best = null, bd = Infinity;
+  for (let k = 0; k < starts.length; k++) if (valid[k] && t >= starts[k] && t <= starts[k] + nwin) { const d = Math.abs(t - starts[k] - nwin / 2); if (d < bd) { bd = d; best = k; } }
+  return best;
+}
+$("sig").addEventListener("pointerup", ev => {
+  const st = current(); if (!st || !st.an || !sigDrag) return;
+  const p = localX(ev, $("sig")), d = sigDrag; sigDrag = null;
+  if (!d.moved) {
+    const k = windowAt(st, p);
+    if (k != null) { push(st); st.keep[k] = !st.keep[k]; st.manual = true; changed(st); } else renderCanvases();
+    return;
+  }
+  const { prep, starts, valid, nwin } = st.an, g = sigGeom(p.W, p.H), T = prep.n / prep.sr;
+  const ta = (Math.min(d.a, d.b) - g.x0) / (g.x1 - g.x0) * T, tb = (Math.max(d.a, d.b) - g.x0) / (g.x1 - g.x0) * T;
+  push(st);
+  for (let k = 0; k < starts.length; k++) { const mid = (starts[k] + nwin / 2) / prep.sr; if (valid[k] && mid >= ta && mid <= tb) st.keep[k] = S.mode === "add"; }
+  st.manual = true; changed(st);
+});
+
+function curveAt(st, p) {
+  const r = st.res; if (!r) return null;
+  const g = hvGeom(p.W, p.H, r);
+  if (p.x < g.x0 || p.x > g.x1) return null;
+  const fx = g.F(p.x); let j = 0, bd = Infinity;
+  for (let i = 0; i < r.f.length; i++) { const d = Math.abs(Math.log(r.f[i]) - Math.log(fx)); if (d < bd) { bd = d; j = i; } }
+  let best = null, bpx = 12;
+  for (const k of r.idx) { const y = g.Y(st.an.hv[k][j]); const d = Math.abs(y - p.y); if (d < bpx) { bpx = d; best = k; } }
+  return best;
+}
+$("hv").addEventListener("pointerdown", ev => {
+  const st = current(); if (!st || !st.res || ev.button !== 0) return;
+  const p = localX(ev, $("hv")); hvDrag = { a: p.x, b: p.x, moved: false };
+  $("hv").setPointerCapture(ev.pointerId);
+});
+$("hv").addEventListener("pointermove", ev => {
+  const st = current(); if (!st || !st.res) return;
+  const p = localX(ev, $("hv"));
+  if (hvDrag) { hvDrag.b = p.x; if (Math.abs(hvDrag.b - hvDrag.a) > 4) hvDrag.moved = true; renderCanvases(); return; }
+  const k = curveAt(st, p); if (k !== st.hover) { st.hover = k; renderCanvases(); }
+});
+$("hv").addEventListener("pointerleave", () => { const st = current(); if (st && st.hover != null && !hvDrag) { st.hover = null; renderCanvases(); } });
+$("hv").addEventListener("pointerup", ev => {
+  const st = current(); if (!st || !st.res || !hvDrag) return;
+  const p = localX(ev, $("hv")), d = hvDrag; hvDrag = null;
+  if (!d.moved) {
+    const k = curveAt(st, p);
+    if (k != null) { push(st); st.keep[k] = false; st.hover = null; st.manual = true; changed(st); } else renderCanvases();
+    return;
+  }
+  const g = hvGeom(p.W, p.H, st.res);
+  const fa = g.F(Math.max(g.x0, Math.min(d.a, d.b))), fb = g.F(Math.min(g.x1, Math.max(d.a, d.b)));
+  push(st); st.band = [fa, fb]; changed(st);
+});
+
+function setMode(m) { S.mode = m; $("mRemove").setAttribute("aria-pressed", m === "remove"); $("mAdd").setAttribute("aria-pressed", m === "add"); }
+$("mRemove").onclick = () => setMode("remove");
+$("mAdd").onclick = () => setMode("add");
+const act = fn => () => { const st = current(); if (!st || !st.an) return; push(st); fn(st); changed(st); };
+$("bAuto").onclick = act(st => { st.keep = st.an.auto.slice(); st.manual = false; });
+$("bAll").onclick = act(st => { st.keep = st.an.valid.slice(); st.manual = true; });
+$("bNone").onclick = act(st => { st.keep = st.keep.map(() => false); st.manual = true; });
+$("bBand").onclick = act(st => { st.band = [null, null]; });
+function undo() { const st = current(); if (!st || !st.hist.length) return; const h = st.hist.pop(); st.keep = h.keep; st.band = h.band; st.manual = h.manual; changed(st); }
+$("bUndo").onclick = undo;
+document.addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); undo(); } });
+
+$("btnApply").onclick = async () => {
+  S.params = readParams();
+  for (const st of S.stations) { st.an = null; st.res = null; st.ses = null; st.band = [null, null]; }
+  if (S.cur >= 0) await selectStation(S.cur);
+  setStatus("Parameters applied. Other stations will be recalculated when opened or via Process All Stations.");
+};
+
+$("bBatch").onclick = async () => {
+  for (let i = 0; i < S.stations.length; i++) {
+    const st = S.stations[i];
+    busy(true, `Processing ${st.name} (${i + 1}/${S.stations.length})...`); await tick();
+    try { await ensure(st); } catch (e) { st.err = e.message; }
+    renderStations(); renderSummary();
+  }
+  busy(false); renderAll();
+};
+
+// ---------- input data ----------
+$("btnFolder").onclick = () => $("inFolder").click();
+$("btnFiles").onclick = () => $("inFiles").click();
+$("btnZip").onclick = () => $("inZip").click();
+$("inFolder").onchange = e => { addStations(fromFileList(e.target.files)); e.target.value = ""; };
+$("inFiles").onchange = e => { addStations(fromFileList(e.target.files)); e.target.value = ""; };
+$("inZip").onchange = async e => { const f = e.target.files[0]; e.target.value = ""; if (f) { busy(true, "Opening ZIP..."); addStations(await fromZip(f)); busy(false); } };
+
+const drop = $("drop");
+["dragenter", "dragover"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", async e => {
+  const items = [...(e.dataTransfer.items || [])].map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+  busy(true, "Reading data...");
+  const list = [];
+  const walk = (entry, path) => new Promise(res => {
+    if (entry.isFile) entry.file(f => { list.push({ path: path + f.name, file: f }); res(); }, () => res());
+    else if (entry.isDirectory) {
+      const rd = entry.createReader(), all = [];
+      const more = () => rd.readEntries(async es => { if (!es.length) { for (const c of all) await walk(c, path + entry.name + "/"); res(); } else { all.push(...es); more(); } }, () => res());
+      more();
+    } else res();
+  });
+  if (items.length) { for (const it of items) await walk(it, ""); }
+  else for (const f of e.dataTransfer.files) list.push({ path: f.name, file: f });
+  const zips = list.filter(x => /\.zip$/i.test(x.path));
+  const groups = groupByDir(list.map(x => ({ path: x.path, get: () => x.file.arrayBuffer() })));
+  for (const z of zips) groups.push(...await fromZip(z.file));
+  busy(false);
+  if (!groups.length) setStatus("No MiniSEED files found in the dropped items.", true);
+  addStations(groups);
+});
+
+// ---------- ekspor ----------
+let downloadsP = null;
+function downloadsCap() { if (!downloadsP) downloadsP = (window.claude && window.claude.use) ? window.claude.use("downloads").catch(() => null) : Promise.resolve(null); return downloadsP; }
+async function saveFile(filename, data, preview) {
+  const blob = data instanceof Blob ? data : new Blob([data], { type: "text/plain;charset=utf-8" });
+  const dl = await downloadsCap();
+  if (dl) {
+    try { await dl.save({ filename, data: blob }); setStatus(`${filename} saved.`); return; }
+    catch (e) { if (e && e.code === "declined") { setStatus("Save cancelled."); return; } }
+  }
+  if (window.claude) { 
+    if (preview) { $("previewImg").src = URL.createObjectURL(blob); $("preview").hidden = false; }
+    else setStatus("Download unavailable in this view. Open the HTML file directly in a browser.", true);
+    return;
+  }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  setStatus(`${filename} downloaded.`);
+}
+
+function renderJpeg(st, withSignal) {
+  const W = 1600, Hh = 1200, Hs = withSignal ? 620 : 0, pal = paperPalette();
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = Hh + Hs;
+  const ctx = cv.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, Hh + Hs);
+  ctx.scale(2, 2);
+  const hover = st.hover; st.hover = null;
+  if (withSignal) { const env = st.an.env; st.an.env = null; drawSignals(ctx, W / 2, Hs / 2, st, pal, null); st.an.env = env; ctx.translate(0, Hs / 2); }
+  drawHV(ctx, W / 2, Hh / 2, st, pal, { lw: 1 });
+  st.hover = hover;
+  return new Promise(res => cv.toBlob(res, "image/jpeg", 0.95));
+}
+function needRes() { const st = current(); if (!st || !st.res) { setStatus("No results to export.", true); return null; } return st; }
+$("eJpg").onclick = async () => { const st = needRes(); if (st) saveFile(`${st.name}_HVSR.jpg`, await renderJpeg(st, false), true); };
+$("eJpg2").onclick = async () => { const st = needRes(); if (st) saveFile(`${st.name}_signal_HVSR.jpg`, await renderJpeg(st, true), true); };
+$("eCsv").onclick = () => {
+  const st = needRes(); if (!st) return; const r = st.res;
+  let s = "frequency_Hz,HV_mean,HV_min(mean/std),HV_max(mean*std),std_factor\n";
+  for (let j = 0; j < r.f.length; j++) s += [r.f[j], r.mean[j], r.mean[j] / r.sfac[j], r.mean[j] * r.sfac[j], r.sfac[j]].map(v => v.toFixed(6)).join(",") + "\n";
+  saveFile(`${st.name}_HVSR.csv`, new Blob([s], { type: "text/csv" }));
+};
+$("eTxt").onclick = () => {
+  const st = needRes(); if (!st) return; const r = st.res, s = st.ses, p = S.params;
+  const L = [`HVSR ANALYSIS RESULTS — ${st.name}`, "=".repeat(60),
+    `Recording start     : ${new Date(st.tr.t0 * 1000).toISOString()}`,
+    `Station             : ${st.tr.net}.${st.tr.sta}`,
+    `Sampling rate       : ${st.tr.sr} Hz`,
+    `Window selection    : ${st.manual ? "manual (picking)" : "automatic (STA/LTA)"}`,
+    `Window length       : ${p.win} s, overlap ${p.over}%`,
+    `Konno-Ohmachi b     : ${p.ko}`,
+    `Windows used        : ${r.nUsed} out of ${st.an.valid.filter(Boolean).length}`,
+    `Peak search range   : ${r.band[0].toFixed(2)} – ${r.band[1].toFixed(2)} Hz`, "",
+    `Dominant freq f0    : ${r.f0.toFixed(4)} Hz   (period T0 = ${(1 / r.f0).toFixed(4)} s)`,
+    `Amplification A0    : ${r.A0.toFixed(4)}`,
+    `f0 from windows     : ${r.f0w.toFixed(4)} Hz  (std factor ${r.f0wSd.toFixed(4)}, σf = ${r.sigmaF.toFixed(4)} Hz)`,
+    `Vulnerability idx Kg: ${(r.A0 ** 2 / r.f0).toFixed(4)}   (Kg = A0²/f0, Nakamura)`, "",
+    "SESAME CRITERIA (2004)", `Curve reliability (${s.nrel}/3 fulfilled; 3/3 required):`,
+    ...s.rel.map(([n, ok, v]) => `  [${ok ? "OK" : "--"}] ${n.padEnd(38)} ${v}`),
+    `Clear peak (${s.nclr}/6 fulfilled; min 5/6 required):`,
+    ...s.clr.map(([n, ok, v]) => `  [${ok ? "OK" : "--"}] ${n.padEnd(38)} ${v}`), "",
+    `Conclusion: curve is ${s.nrel === 3 ? "RELIABLE" : "UNRELIABLE"}, peak is ${s.nclr >= 5 ? "CLEAR" : "UNCLEAR"}.`, "",
+    "WINDOW LIST (no, start_s, end_s, used)",
+    ...st.an.starts.map((s0, k) => `${k + 1}, ${(s0 / st.tr.sr).toFixed(2)}, ${((s0 + st.an.nwin) / st.tr.sr).toFixed(2)}, ${st.an.valid[k] ? (st.keep[k] ? 1 : 0) : "gap"}`)];
+  saveFile(`${st.name}_report.txt`, L.join("\n") + "\n");
+};
+$("eSum").onclick = () => {
+  const rows = S.stations.filter(s => s.res);
+  if (!rows.length) { setStatus("No stations processed yet.", true); return; }
+  let s = "station,f0_Hz,A0,T0_s,Kg,f0_window_Hz,n_window,SESAME_reliable(/3),SESAME_peak(/6),selection\n";
+  for (const st of rows) { const r = st.res; s += `${st.name},${r.f0.toFixed(4)},${r.A0.toFixed(4)},${(1 / r.f0).toFixed(4)},${(r.A0 ** 2 / r.f0).toFixed(4)},${r.f0w.toFixed(4)},${r.nUsed},${st.ses.nrel},${st.ses.nclr},${st.manual ? "manual" : "automatic"}\n`; }
+  saveFile("HVSR_summary.csv", new Blob([s], { type: "text/csv" }));
+};
+
+// ---------- start ----------
+let rz; const queue = () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(renderCanvases); };
+window.addEventListener("resize", queue);
+if (window.ResizeObserver) { const ro = new ResizeObserver(queue); ro.observe($("sig")); ro.observe($("hv")); }
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderCanvases);
+new MutationObserver(renderCanvases).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+if (document.fonts) document.fonts.ready.then(renderCanvases);
+
+async function loadSample() { 
+  const comps = ["SHZ", "SHN", "SHE"];
+  const url = c => `sample/CLG07_${c}.b64.txt`;
+  const get = c => fetch(url(c)).then(r => { if (!r.ok) throw new Error("sample unavailable"); return r.text(); })
+    .then(t => { const bin = atob(t.trim()), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; });
+  try { const h = await fetch(url(comps[0]), { method: "HEAD" }); if (!h.ok) throw 0; }
+  catch (e) { renderAll(); return; }
+  addStations([{ name: "CLG07 (sample)", files: comps.map(c => ({ name: `CLG07_${c}.mseed`, get: () => get(c) })) }]);
+}
+renderAll();
+loadSample();
+</script>

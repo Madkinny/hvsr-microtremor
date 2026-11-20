@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Processing outputs and raw seismic data (keep private data out of the repo)
+hasil_hvsr/
+*.mseed
+*.miniseed
+*.msd
+
+# OS
+.DS_Store
+Thumbs.db
